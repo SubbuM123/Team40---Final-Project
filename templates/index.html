@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Research Paper Recommender</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="navbar">
+    <h1> Research Paper Recommender</h1>
+  </div>
+
+  <div class="container">
+    <form method="post" class="search-form">
+      <label for="query_title">Query Title</label>
+      <input type="text" id="query_title" name="query_title" placeholder="Enter title keywords...">
+
+      <label for="query_abstract">Query Abstract</label>
+      <textarea id="query_abstract" name="query_abstract" rows="6" placeholder="Enter abstract..."></textarea>
+
+      <button type="submit">🔍 Search</button>
+    </form>
+
+    {% if results %}
+      <h2 class="results-header">Top Matches</h2>
+      <div class="results">
+        {% for r in results %}
+          <div class="result">
+            <h3>{{ r.title }}</h3>
+            <p class="abstract">{{ r.abstract }}</p>
+            <p class="score">Relevance Score: <strong>{{ "%.3f"|format(r.score) }}</strong></p>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <footer>
+    <p>CS410 Project</p>
+  </footer>
+</body>
+</html>
