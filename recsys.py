@@ -27,12 +27,30 @@ class RecSys():
     punctuations = None
     stop_words = None
 
+    ps = nltk.stem.PorterStemmer()
+
 
     def __init__(self, bm25_k = 10, top_words = 500):
         self.punctuations = """'",<>./?@#$%^&*_~/!()-[]{};:""" + "\\"
         self.stop_words = set(stopwords.words('english'))
-        self.top_words = top_words
-        self.bm25_k = bm25_k
+        self.top_words = 1000
+        self.bm25_k = 1
+        self.B = 0.5
+
+        a_list = self.dataset["abstract"].to_list()
+        t_list = self.dataset["title"].to_list()
+        avg_abs_length = 0
+        avg_title_length = 0
+        for a in a_list:
+            avg_abs_length += len(a.split())
+        for t in t_list:
+            avg_title_length += len(t.split())
+
+        avg_abs_length = avg_abs_length/len(a_list)
+        avg_title_length = avg_title_length/len(t_list)
+
+        self.avdl_abs = avg_abs_length
+        self.avdl_title = avg_title_length
 
 
     def preprocess_data(self, title_or_abstract):
@@ -60,12 +78,12 @@ class RecSys():
                         word = word.replace(self.punctuations[i], '')
                 if word in self.stop_words:
                     continue
-
-                words.append(word)
+                stem_word = self.ps.stem(word)
+                if stem_word:
+                    words.append(stem_word)
+                else:
+                    words.append(word)
             dictionary[counter] = words
-            # if counter < 20:
-            #     print(dictionary[counter])
-            #     print("\n")
             counter += 1
 
         if title_or_abstract == "title":
@@ -133,6 +151,23 @@ class RecSys():
         elif title_or_abstract == "abstract":
             self.abstract_vocabulary = np.array(top_words)
     
+    def doc_lengths(self):
+        abs_lengths = []
+        title_lengths = []
+        a_list = self.dataset["abstract"].to_list()
+        #t_list = self.dataset["title"].to_list()
+
+        for a in a_list:
+            abs_lengths.append(len(a.split()))
+
+        # for t in a_list:
+        #     abs_lengths.append(len(t.split()))
+
+        avg_abs_length = abs_lengths.sum()/len(abs_lengths)
+
+        self.dl = abs_lengths
+        self.avdl = avg_abs_length
+    
     def compute_IDF(self, title_or_abstract):
         vocab = None
         sentences = None
@@ -162,34 +197,40 @@ class RecSys():
         elif title_or_abstract == "abstract":
             self.abstract_idf = IDF
     
-    def text2TFIDF(self,text, title_or_abstract):
+    def text2TFIDF(self,text, title_or_abstract, q):
         vocab = None
         sentences = None
         if title_or_abstract == "title":
             vocab = self.title_vocabulary
             sentences = text
             idf = self.title_idf
+            avdl = self.avdl_title
         elif title_or_abstract == "abstract":
             vocab = self.abstract_vocabulary
             sentences = text
             idf = self.abstract_idf
+            avdl = self.avdl_abs
 
         tfidfVector = np.zeros(vocab.size)
         c = 0
         for word in vocab:
             if word in sentences:
                 cwd = sentences.count(word)
-                tfidfVector[c] = (((self.bm25_k + 1) * cwd)/(cwd + self.bm25_k)) * idf[c]
+                if q == False:
+                    dls = len(sentences)
+                    tfidfVector[c] = (((self.bm25_k + 1) * cwd)/(cwd + self.bm25_k * (1 - self.B + self.B * (dls/avdl)))) * idf[c]
+                else:
+                    tfidfVector[c] = (((self.bm25_k + 1) * cwd)/(cwd + self.bm25_k)) * idf[c]
             else:
                 tfidfVector[c] = 0
             c += 1
         return tfidfVector
     
     def tfidf_score(self,query,doc, title_or_abstract):
-        q = self.text2TFIDF(query, title_or_abstract)
-        d = self.text2TFIDF(doc, title_or_abstract)
+        q = self.text2TFIDF(query, title_or_abstract, True)
+        d = self.text2TFIDF(doc, title_or_abstract, False)
 
-        relevance = np.dot(q, d) / np.dot(np.linalg.norm(q), np.linalg.norm(d))
+        relevance = np.dot(q, d)
 
         return relevance
     
@@ -198,7 +239,10 @@ class RecSys():
         similarity_scores = []
 
         for i in range(self.num_rows):
+            # if i == 0:
+            #     print(self.titles[0], self.abstracts[0])
             score = self.tfidf_score(query_title, self.titles[i], "title") + self.tfidf_score(query_abstract, self.abstracts[i], "abstract")
+            #score = self.tfidf_score(query_abstract, self.abstracts[i], "abstract")
             similarity_scores.append(score)
         
         return np.array(similarity_scores)
@@ -231,5 +275,7 @@ if __name__ == '__main__':
 
     ss = rs.similarity_ranking(qt, qa)
 
-    print(ss[1])
+    print(ss.mean(), ss.var(), np.median(ss), np.max(ss), np.min(ss))
+    top5 = np.sort(ss)[-10:]
+    print(top5)
     #print(rs.abstract_vocabulary)
