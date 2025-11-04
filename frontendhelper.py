@@ -6,6 +6,8 @@ from nltk.corpus import stopwords
 from collections import Counter
 import math
 
+#test
+
 class RecSys():
     abstracts = {}
     titles = {}
