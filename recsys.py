@@ -5,6 +5,7 @@ from nltk.corpus import stopwords
 
 from collections import Counter
 import math
+import time
 
 class RecSys():
     abstracts = {}
@@ -18,7 +19,7 @@ class RecSys():
 
     dataset1 = pd.read_csv("dataset1.csv")
     dataset2 = pd.read_csv("dataset2.csv")
-    dataset = pd.concat([dataset1, dataset2]).head(50)
+    dataset = pd.concat([dataset1, dataset2]).head(1000)
     num_rows = len(dataset)
 
     abstract_vocabulary = set()
@@ -33,7 +34,7 @@ class RecSys():
     def __init__(self, bm25_k = 10, top_words = 500):
         self.punctuations = """'",<>./?@#$%^&*_~/!()-[]{};:""" + "\\"
         self.stop_words = set(stopwords.words('english'))
-        self.top_words = 1000
+        self.top_words = 500
         self.bm25_k = 1
         self.B = 0.5
 
@@ -250,6 +251,7 @@ class RecSys():
     
 
 if __name__ == '__main__':
+    t = time.time()
     rs = RecSys()
     rs.preprocess_data("abstract")
     rs.build_vocab("abstract")
@@ -278,4 +280,6 @@ if __name__ == '__main__':
     print(ss.mean(), ss.var(), np.median(ss), np.max(ss), np.min(ss))
     top5 = np.sort(ss)[-10:]
     print(top5)
+    t2 = time.time()
+    print(t2 - t)
     #print(rs.abstract_vocabulary)
