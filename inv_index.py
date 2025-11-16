@@ -20,7 +20,7 @@ class InvInd():
     dataset1 = pd.read_csv("dataset1.csv")
     dataset2 = pd.read_csv("dataset2.csv")
     dataset3 = pd.read_csv("dataset3.csv")
-    dataset = pd.concat([dataset1, dataset2, dataset3])
+    dataset = pd.concat([dataset1, dataset2, dataset3]).tail(60000)
     num_rows = len(dataset)
 
     abstract_vocabulary = set()
@@ -39,7 +39,7 @@ class InvInd():
         self.stop_words = set(stopwords.words('english'))
         self.top_words = top_words
         self.bm25_k = bm25_k
-        self.B = 0.5
+        self.B = 0.75
 
         a_list = self.dataset["abstract"].to_list()
         t_list = self.dataset["title"].to_list()
