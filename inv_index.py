@@ -268,26 +268,21 @@ class InvInd():
     def inverted_index(self):
         print(len(self.title_vocabulary))
         print(len(self.titles))
-        with open("t.txt", "w") as ft, open("a.txt", "w") as fa:
-            for i in range(self.num_rows):
-                npt = self.text2TFIDF(self.titles[i], "title", False)
-                npa = self.text2TFIDF(self.abstracts[i], "abstract", False)
+        title_matrix = np.zeros((self.num_rows, len(self.title_vocabulary)), dtype=np.float32)
+        abstract_matrix = np.zeros((self.num_rows, len(self.abstract_vocabulary)), dtype=np.float32)
 
-                t = npt.tolist()
-                a = npa.tolist()
+        for i in range(self.num_rows):
+            title_matrix[i] = self.text2TFIDF(self.titles[i], "title", False)
+            abstract_matrix[i] = self.text2TFIDF(self.abstracts[i], "abstract", False)
 
-                t = list(map(str, t))
-                a = list(map(str, a))
-
-                ft.write(",".join(t) + "\n")
-                fa.write(",".join(a) + "\n")
-            print(len(t))
+        np.save("t.npy", title_matrix)
+        np.save("a.npy", abstract_matrix)
 
     
 
 if __name__ == '__main__':
     t = time.time()
-    rs = InvInd(bm25_k=1.2, top_words=1500)
+    rs = InvInd(bm25_k=1.2, top_words=500)
     rs.preprocess_data("abstract")
     rs.build_vocab("abstract")
     rs.compute_IDF("abstract")

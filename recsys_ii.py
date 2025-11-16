@@ -39,30 +39,8 @@ class RecSys_II():
         self.bm25_k = bm25_k
         self.B = b
         
-        with open("t.txt", 'r') as file:
-            vec = file.readline()
-            l = 0
-            while vec:
-                tfidf = np.zeros(top_words)
-                vec = vec.split(",")
-                for v in range(top_words):
-                    
-                        tfidf[v] = float(vec[v])
-                    
-                self.title_idf.append(tfidf)
-                l += 1
-                vec = file.readline()
-        with open("a.txt", 'r') as file:
-            vec = file.readline()
-            l = 0
-            while vec:
-                tfidf = np.zeros(top_words)
-                vec = vec.split(",")
-                for v in range(top_words):
-                    tfidf[v] = float(vec[v])
-                self.abstract_idf.append(tfidf)
-                l += 1
-                vec = file.readline()
+        self.title_idf = np.load("t.npy").astype(np.float32)
+        self.abstract_idf = np.load("a.npy").astype(np.float32)
 
     def preprocess_query(self, query_title, query_abstract):
         counter = 0
@@ -140,7 +118,6 @@ class RecSys_II():
         c = 0
         for word in vocab:
             if word in sentences:
-                print("--------------")
                 cwd = sentences.count(word)
                 tfidfVector[c] = (((self.bm25_k + 1) * cwd)/(cwd + self.bm25_k)) * math.log((M+1)/vocab[word])
             else:
@@ -156,7 +133,6 @@ class RecSys_II():
         query_title, query_abstract = self.preprocess_query(query_title, query_abstract)
         q_title = self.text2TFIDF(query_title, "title", False)
         q_abstract = self.text2TFIDF(query_title, "abstract", False)
-        print(q_title, q_abstract)
 
         similarity_scores = []
         for i in range(self.num_rows):
