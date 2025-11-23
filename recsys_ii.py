@@ -32,7 +32,7 @@ class RecSys_II():
     ps = nltk.stem.PorterStemmer()
 
 
-    def __init__(self, bm25_k = 1, top_words = 500, b = 0.7):
+    def __init__(self, bm25_k = 1, top_words = 1500, b = 0.7):
         self.punctuations = """'",<>./?@#$%^&*_~/!()-[]{};:""" + "\\"
         self.stop_words = set(stopwords.words('english'))
         self.top_words = top_words

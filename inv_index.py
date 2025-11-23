@@ -17,9 +17,9 @@ class InvInd():
     abstract_idf = {}
     title_idf = {}
 
-    dataset1 = pd.read_csv("dataset1.csv")
-    dataset2 = pd.read_csv("dataset2.csv")
-    dataset3 = pd.read_csv("dataset3.csv")
+    dataset1 = pd.read_csv("data/dataset1.csv")
+    dataset2 = pd.read_csv("data/dataset2.csv")
+    dataset3 = pd.read_csv("data/dataset3.csv")
     dataset = pd.concat([dataset1, dataset2, dataset3])
     num_rows = len(dataset)
 
@@ -159,13 +159,13 @@ class InvInd():
 
         if title_or_abstract == "title":
             self.title_vocabulary = np.array(top_word_list)
-            with open("tv.txt", "w", encoding="utf-8") as f:
+            with open("vocabs/tv.txt", "w", encoding="utf-8") as f:
                 for word in top_word_list:
                     f.write(f"{word},{doc_freq[word]}\n")
 
         elif title_or_abstract == "abstract":
             self.abstract_vocabulary = np.array(top_word_list)
-            with open("av.txt", "w", encoding="utf-8") as f:
+            with open("vocabs/av.txt", "w", encoding="utf-8") as f:
                 for word in top_word_list:
                     f.write(f"{word},{doc_freq[word]}\n")
     
