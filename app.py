@@ -1,28 +1,23 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import numpy as np
-from frontendhelper import RecSys
+from recsys_ii import RecSys_II
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"  
 
 # recommender
-rs = RecSys()
-rs.preprocess_data("abstract")
+rs = RecSys_II()
 rs.build_vocab("abstract")
-rs.compute_IDF("abstract")
-
-rs.preprocess_data("title")
 rs.build_vocab("title")
-rs.compute_IDF("title")
 
 
 @app.route("/", methods=["GET", "POST"])
 def home():
     if request.method == "POST":
         qt = request.form.get("query_title")
-        qa = request.form.get("query_abstract")
+        # qa = request.form.get("query_abstract")
 
-        scores = rs.similarity_ranking(qt, qa)
+        scores = rs.similarity_ranking(qt, qt)
         top_idx = np.argsort(scores)[::-1][:5]
 
         results = []

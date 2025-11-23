@@ -20,11 +20,11 @@ class InvInd():
     dataset1 = pd.read_csv("dataset1.csv")
     dataset2 = pd.read_csv("dataset2.csv")
     dataset3 = pd.read_csv("dataset3.csv")
-    dataset = pd.concat([dataset1, dataset2, dataset3]).tail(60000)
+    dataset = pd.concat([dataset1, dataset2, dataset3])
     num_rows = len(dataset)
 
-    abstract_vocabulary = set()
     title_vocabulary = set()
+    abstract_vocabulary = set()
 
     punctuations = None
     stop_words = None
@@ -34,12 +34,12 @@ class InvInd():
     
 
 
-    def __init__(self, bm25_k = 10, top_words = 500):
+    def __init__(self, bm25_k = 1, top_words = 500, b = 0.7):
         self.punctuations = """'",<>./?@#$%^&*_~/!()-[]{};:""" + "\\"
         self.stop_words = set(stopwords.words('english'))
         self.top_words = top_words
         self.bm25_k = bm25_k
-        self.B = 0.75
+        self.B = b
 
         a_list = self.dataset["abstract"].to_list()
         t_list = self.dataset["title"].to_list()
@@ -144,13 +144,13 @@ class InvInd():
         count = Counter(words)
         sorted_count = count.most_common(self.top_words + 1)
 
-        top_words = []
+        top_word_list = []
         for key in sorted_count:
             if key[0] == '':
                 continue
-            top_words.append(key[0])
+            top_word_list.append(key[0])
 
-        word_counts = dict(sorted_count)
+        top_word_list = top_word_list[:self.top_words]
 
         doc_freq = Counter()
         for doc in sentences.values():
@@ -158,15 +158,15 @@ class InvInd():
             doc_freq.update(unique_words)
 
         if title_or_abstract == "title":
-            self.title_vocabulary = np.array(top_words)
+            self.title_vocabulary = np.array(top_word_list)
             with open("tv.txt", "w", encoding="utf-8") as f:
-                for word in top_words:
+                for word in top_word_list:
                     f.write(f"{word},{doc_freq[word]}\n")
 
         elif title_or_abstract == "abstract":
-            self.abstract_vocabulary = np.array(top_words)
+            self.abstract_vocabulary = np.array(top_word_list)
             with open("av.txt", "w", encoding="utf-8") as f:
-                for word in top_words:
+                for word in top_word_list:
                     f.write(f"{word},{doc_freq[word]}\n")
     
     def doc_lengths(self):
@@ -266,8 +266,6 @@ class InvInd():
         return np.array(similarity_scores)
     
     def inverted_index(self):
-        print(len(self.title_vocabulary))
-        print(len(self.titles))
         title_matrix = np.zeros((self.num_rows, len(self.title_vocabulary)), dtype=np.float32)
         abstract_matrix = np.zeros((self.num_rows, len(self.abstract_vocabulary)), dtype=np.float32)
 
@@ -281,7 +279,6 @@ class InvInd():
     
 
 if __name__ == '__main__':
-    t = time.time()
     rs = InvInd(bm25_k=1.2, top_words=500)
     rs.preprocess_data("abstract")
     rs.build_vocab("abstract")
@@ -291,27 +288,7 @@ if __name__ == '__main__':
     rs.build_vocab("title")
     rs.compute_IDF("title")
 
-    #qt and qa are user inputs
-    # qt = "Entity resolution with iterative blocking"
-
-    # qa = "Entity Resolution (ER) is the problem of identifying which records in a database refer to the same real-world entity. " \
-    # "An exhaustive ER process involves computing the similarities between pairs of records, which can be very expensive for large " \
-    # "datasets. Various blocking techniques can be used to enhance the performance of ER by dividing the records into blocks in multiple " \
-    # "ways and only comparing records within the same block. However, most blocking techniques process blocks separately and do not " \
-    # "exploit the results of other blocks. In this paper, we propose an  iterative blocking framework  where the ER results of blocks " \
-    # "are reflected to subsequently processed blocks. Blocks are now iteratively processed until no block contains any more matching " \
-    # "records. Compared to simple blocking, iterative blocking may achieve higher accuracy because reflecting the ER results of blocks " \
-    # "to other blocks may generate additional record matches. Iterative blocking may also be more efficient because processing a block now " \
-    # "saves the processing time for other blocks. We implement a scalable iterative " \
-    # "blocking system and demonstrate that iterative blocking can be more accurate and efficient than blocking for large datasets."
-
-    # ss = rs.similarity_ranking(qt, qa)
-
-    # print(ss.mean(), ss.var(), np.median(ss), np.max(ss), np.min(ss))
-    # top5 = np.sort(ss)[-10:]
-    # print(top5)
+    
     print("Done with titles")
     rs.inverted_index()
-    t2 = time.time()
-    print(t2 - t)
-    #print(rs.abstract_vocabulary)
+
