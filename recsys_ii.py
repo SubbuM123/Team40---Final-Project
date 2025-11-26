@@ -38,10 +38,10 @@ class RecSys_II():
         self.top_words = top_words
         self.bm25_k = bm25_k
         self.B = b
-        
+        #load in the npy files after initializing the tuned parameters, keep on the first top_word indices
         self.title_idf = np.load("t.npy").astype(np.float32)[:, :top_words]
         self.abstract_idf = np.load("a.npy").astype(np.float32)[:, :top_words]
-
+    # use the same preprocessing logic that was used in the recsys.py and inv_index.py files, but just run it for queries
     def preprocess_query(self, query_title, query_abstract):
         counter = 0
         q_title = []
@@ -79,7 +79,7 @@ class RecSys_II():
                 q_abstract.append(word)
         
         return q_title, q_abstract
-
+    # this functions "builds" the vocab by just reading in the text files with the vocab stored
     def build_vocab(self, title_or_abstract):
         with open("vocabs/tv.txt", "r", encoding="utf-8") as f:
             l = 0
@@ -100,7 +100,7 @@ class RecSys_II():
                 word, count = line.split(",")
                 self.abstract_vocabulary[word.strip()] = int(count.strip())
                 l += 1
-    
+    # like the previous files, the coverts the text to a vector, but only does this for queries
     def text2TFIDF(self,text, title_or_abstract, q):
         vocab = None
         sentences = None
@@ -123,11 +123,11 @@ class RecSys_II():
                 tfidfVector[c] = 0
             c += 1
         return tfidfVector[:self.top_words]
-    
+    # finds the relevance score of 2 vectors
     def tfidf_score(self,query_vec,doc_vec, title_or_abstract):
         relevance = np.dot(query_vec, doc_vec)
         return relevance
-    
+    # iterates through the documents, computes a relvance score with the query, then returns the array of scores
     def similarity_ranking(self, query_title, query_abstract):
         query_title, query_abstract = self.preprocess_query(query_title, query_abstract)
         q_title = self.text2TFIDF(query_title, "title", False)
@@ -135,6 +135,7 @@ class RecSys_II():
 
         similarity_scores = []
         for i in range(self.num_rows):
+            #weighted the title relevances twice as high as the abstract relevances
             score = 0.66*self.tfidf_score(q_title, self.title_idf[i], "title") + 0.33*self.tfidf_score(q_abstract, self.abstract_idf[i], "abstract")
             similarity_scores.append(score)
         

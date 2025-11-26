@@ -30,16 +30,17 @@ class RecSys():
 
     ps = nltk.stem.PorterStemmer()
 
-
-    def __init__(self, bm25_k = 10, top_words = 500):
+    #inititalize class with the tuned parameters
+    def __init__(self, bm25_k = 1, top_words = 1500,b = 0.7):
         self.punctuations = """'",<>./?@#$%^&*_~/!()-[]{};:""" + "\\"
         self.stop_words = set(stopwords.words('english'))
         self.top_words = 500
         self.bm25_k = 1
-        self.B = 0.5
-
+        self.B = b
+        # add the abstracts and titles into a list
         a_list = self.dataset["abstract"].to_list()
         t_list = self.dataset["title"].to_list()
+        # find the length of each document
         avg_abs_length = 0
         avg_title_length = 0
         for a in a_list:
@@ -47,6 +48,7 @@ class RecSys():
         for t in t_list:
             avg_title_length += len(t.split())
 
+        #find the average length of all of the documents
         avg_abs_length = avg_abs_length/len(a_list)
         avg_title_length = avg_title_length/len(t_list)
 
@@ -57,6 +59,7 @@ class RecSys():
     def preprocess_data(self, title_or_abstract):
         sentences = None
         dictionary = {}
+        #check if we are dealing with titles or abstracts
         if title_or_abstract == "title":
             sentences = self.dataset["title"].to_list()
             dictionary = self.titles
@@ -67,6 +70,7 @@ class RecSys():
             RuntimeError("Enter Title or Abstract")
         
         counter = 0
+        # preprocess the tokens, all lowercase, stripped of any spaces, no punctuation, stem the words
         for sentence in sentences:
             words = []
             for word in sentence.split(' '):
@@ -91,7 +95,7 @@ class RecSys():
             self.titles = dictionary
         elif title_or_abstract == "abstract":
             self.abstracts = dictionary
-
+    # follow the same preprocessing steps as the abstracts and titles, but this function just takes in single queries
     def preprocess_query(self, query_title, query_abstract):
         counter = 0
         q_title = []
@@ -121,9 +125,10 @@ class RecSys():
             q_abstract.append(word)
         
         return q_title, q_abstract
-
+    # build the vocab with top_words number of words
     def build_vocab(self, title_or_abstract):
         sentences = None
+        # check if we are dealing with titles or abstracts
         if title_or_abstract == "title":
             vocab = self.title_vocabulary
             sentences = self.titles
@@ -137,12 +142,13 @@ class RecSys():
         for c in range(self.num_rows):
             for word in sentences[c]:
                 words.append(word)
-        
+        # after parsing though the dataframe, add the words to a Counter and return the most common words
         count = Counter(words)
         sorted_count = count.most_common(self.top_words)
 
         top_words = []
         for key in sorted_count:
+            # sanity check to make sure we dont count the empty string as part of the vocabulary
             if key[0] == '':
                 continue
             top_words.append(key[0])
@@ -152,6 +158,7 @@ class RecSys():
         elif title_or_abstract == "abstract":
             self.abstract_vocabulary = np.array(top_words)
     
+    #old function to compute doc lengths, but not used anymore since it is done in the comstructor
     def doc_lengths(self):
         abs_lengths = []
         title_lengths = []
@@ -169,6 +176,7 @@ class RecSys():
         self.dl = abs_lengths
         self.avdl = avg_abs_length
     
+    # computes the IDF for each word
     def compute_IDF(self, title_or_abstract):
         vocab = None
         sentences = None
@@ -180,7 +188,7 @@ class RecSys():
             sentences = self.abstracts
         
         M = self.num_rows
-
+        # store the idf of each word in a idf dictionary
         IDF = {}
 
         counter = 0
@@ -189,7 +197,7 @@ class RecSys():
             for sentence in sentences.values():
                 if word in sentence:
                     k += 1
-            
+            # idf formula
             IDF[counter] = math.log((M+1)/k)
             counter += 1
         
@@ -198,6 +206,7 @@ class RecSys():
         elif title_or_abstract == "abstract":
             self.abstract_idf = IDF
     
+    #creates the tfidf vector for every document in the set
     def text2TFIDF(self,text, title_or_abstract, q):
         vocab = None
         sentences = None
@@ -218,15 +227,17 @@ class RecSys():
             if word in sentences:
                 cwd = sentences.count(word)
                 if q == False:
+                    # if not a query, follow the traditional tf-idf with doc length normalization encoding
                     dls = len(sentences)
                     tfidfVector[c] = (((self.bm25_k + 1) * cwd)/(cwd + self.bm25_k * (1 - self.B + self.B * (dls/avdl)))) * idf[c]
                 else:
+                    # otherwise for a query just use the tfidf formula with no normalization
                     tfidfVector[c] = (((self.bm25_k + 1) * cwd)/(cwd + self.bm25_k)) * idf[c]
             else:
                 tfidfVector[c] = 0
             c += 1
         return tfidfVector
-    
+    # just makes vectors for a document and the query, and finds and returns the simularity score 
     def tfidf_score(self,query,doc, title_or_abstract):
         q = self.text2TFIDF(query, title_or_abstract, True)
         d = self.text2TFIDF(doc, title_or_abstract, False)
@@ -234,7 +245,7 @@ class RecSys():
         relevance = np.dot(q, d)
 
         return relevance
-    
+    #iterate through the dataset, compute all the relvance scores, and then return them
     def similarity_ranking(self, query_title, query_abstract):
         query_title, query_abstract = self.preprocess_query(query_title, query_abstract)
         similarity_scores = []
@@ -251,6 +262,7 @@ class RecSys():
     
 
 if __name__ == '__main__':
+    # basic testing with a query to make sure the results makesense, we also sort the rankings and print out descriptive statistics
     t = time.time()
     rs = RecSys()
     rs.preprocess_data("abstract")
