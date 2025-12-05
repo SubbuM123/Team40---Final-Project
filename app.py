@@ -15,7 +15,6 @@ rs.build_vocab("title")
 def home():
     if request.method == "POST":
         qt = request.form.get("query_title")
-        # qa = request.form.get("query_abstract")
 
         scores = rs.similarity_ranking(qt, qt)
         top_idx = np.argsort(scores)[::-1][:5]
@@ -30,10 +29,9 @@ def home():
 
         session["results"] = results
 
-        # refresh button
+        #refresh button
         return redirect(url_for("home"))
 
-    # ✅ If GET request (after redirect)
     results = session.pop("results", None)  # get results once, then clear
     return render_template("index.html", results=results)
 
